@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dark .glass-effect {
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        .calc-btn {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .calc-btn:active {
+            transform: scale(0.92);
+        }
+
+        .display-area {
+            word-break: break-all;
+            min-height: 120px;
+        }
+
+        .history-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .history-panel.open {
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-md bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden relative border-4 border-slate-200 dark:border-slate-700">
+        
+        <!-- Header / History Toggle -->
+        <div class="flex justify-between items-center p-6 pb-2">
+            <button id="toggleHistory" class="text-slate-500 hover:text-blue-500 transition-colors">
+                <i class="fa-solid fa-clock-rotate-left text-xl"></i>
+            </button>
+            <button id="toggleTheme" class="text-slate-500 hover:text-yellow-500 transition-colors">
+                <i class="fa-solid fa-moon text-xl dark:hidden"></i>
+                <i class="fa-solid fa-sun text-xl hidden dark:block"></i>
+            </button>
+        </div>
+
+        <!-- History Content -->
+        <div id="historyContainer" class="history-panel px-6 bg-slate-50 dark:bg-slate-900/50">
+            <div class="py-4 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-semibold text-slate-400">최근 기록</span>
+                    <button id="clearHistory" class="text-xs text-red-400 hover:text-red-600">모두 삭제</button>
+                </div>
+                <div id="historyList" class="space-y-2 overflow-y-auto max-h-48 text-right pr-2">
+                    <!-- History items will be injected here -->
+                    <p class="text-slate-400 text-sm italic">기록이 없습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display -->
+        <div class="p-8 pt-4 text-right display-area flex flex-col justify-end">
+            <div id="expression" class="text-slate-400 dark:text-slate-500 text-lg font-light mb-1 h-7 overflow-hidden"></div>
+            <div id="currentValue" class="text-slate-800 dark:text-white text-5xl font-semibold tracking-tighter truncate">0</div>
+        </div>
+
+        <!-- Keypad -->
+        <div class="grid grid-cols-4 gap-3 p-6 pt-2">
+            <!-- Row 1 -->
+            <button onclick="clearAll()" class="calc-btn bg-red-50 dark:bg-red-900/20 text-red-500 p-5 rounded-3xl font-bold text-xl hover:bg-red-100">AC</button>
+            <button onclick="deleteLast()" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 p-5 rounded-3xl font-bold text-xl hover:bg-slate-200"><i class="fa-solid fa-delete-left"></i></button>
+            <button onclick="setOperator('%')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 p-5 rounded-3xl font-bold text-xl hover:bg-slate-200">%</button>
+            <button onclick="setOperator('/')" class="calc-btn bg-blue-500 text-white p-5 rounded-3xl font-bold text-2xl hover:bg-blue-600">÷</button>
+
+            <!-- Row 2 -->
+            <button onclick="appendNumber('7')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">7</button>
+            <button onclick="appendNumber('8')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">8</button>
+            <button onclick="appendNumber('9')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">9</button>
+            <button onclick="setOperator('*')" class="calc-btn bg-blue-500 text-white p-5 rounded-3xl font-bold text-2xl hover:bg-blue-600">×</button>
+
+            <!-- Row 3 -->
+            <button onclick="appendNumber('4')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">4</button>
+            <button onclick="appendNumber('5')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">5</button>
+            <button onclick="appendNumber('6')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">6</button>
+            <button onclick="setOperator('-')" class="calc-btn bg-blue-500 text-white p-5 rounded-3xl font-bold text-2xl hover:bg-blue-600">−</button>
+
+            <!-- Row 4 -->
+            <button onclick="appendNumber('1')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">1</button>
+            <button onclick="appendNumber('2')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">2</button>
+            <button onclick="appendNumber('3')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">3</button>
+            <button onclick="setOperator('+')" class="calc-btn bg-blue-500 text-white p-5 rounded-3xl font-bold text-2xl hover:bg-blue-600">+</button>
+
+            <!-- Row 5 -->
+            <button onclick="appendNumber('0')" class="calc-btn col-span-2 bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100 text-left pl-8">0</button>
+            <button onclick="appendNumber('.')" class="calc-btn bg-slate-50 dark:bg-slate-700/30 text-slate-700 dark:text-slate-200 p-5 rounded-3xl font-semibold text-2xl hover:bg-slate-100">.</button>
+            <button onclick="calculate()" class="calc-btn bg-emerald-500 text-white p-5 rounded-3xl font-bold text-2xl hover:bg-emerald-600 shadow-lg shadow-emerald-200 dark:shadow-none">=</button>
+        </div>
+    </div>
+
+    <script>
+        let currentInput = '0';
+        let previousInput = '';
+        let operator = null;
+        let shouldResetDisplay = false;
+        let history = [];
+
+        const displayElement = document.getElementById('currentValue');
+        const expressionElement = document.getElementById('expression');
+        const historyContainer = document.getElementById('historyContainer');
+        const historyList = document.getElementById('historyList');
+
+        // Theme Toggle
+        document.getElementById('toggleTheme').addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        // History Toggle
+        document.getElementById('toggleHistory').addEventListener('click', () => {
+            historyContainer.classList.toggle('open');
+        });
+
+        document.getElementById('clearHistory').addEventListener('click', () => {
+            history = [];
+            renderHistory();
+        });
+
+        function updateDisplay() {
+            displayElement.innerText = currentInput;
+            if (operator) {
+                expressionElement.innerText = `${previousInput} ${operator}`;
+            } else {
+                expressionElement.innerText = '';
+            }
+        }
+
+        function appendNumber(num) {
+            if (currentInput === '0' || shouldResetDisplay) {
+                currentInput = num;
+                shouldResetDisplay = false;
+            } else {
+                if (num === '.' && currentInput.includes('.')) return;
+                currentInput += num;
+            }
+            updateDisplay();
+        }
+
+        function setOperator(op) {
+            if (operator !== null) calculate();
+            previousInput = currentInput;
+            operator = op;
+            shouldResetDisplay = true;
+            updateDisplay();
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            previousInput = '';
+            operator = null;
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        function deleteLast() {
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplay();
+        }
+
+        function calculate() {
+            if (operator === null || shouldResetDisplay) return;
+            
+            let result;
+            const prev = parseFloat(previousInput);
+            const current = parseFloat(currentInput);
+            
+            switch (operator) {
+                case '+': result = prev + current; break;
+                case '-': result = prev - current; break;
+                case '*': result = prev * current; break;
+                case '/': 
+                    if (current === 0) {
+                        showError("0으로 나눌 수 없습니다");
+                        return;
+                    }
+                    result = prev / current; 
+                    break;
+                case '%': result = prev % current; break;
+                default: return;
+            }
+
+            // 기록 추가
+            const record = `${previousInput} ${operator} ${currentInput} = ${result}`;
+            history.unshift(record);
+            renderHistory();
+
+            currentInput = result.toString();
+            operator = null;
+            previousInput = '';
+            shouldResetDisplay = true;
+            updateDisplay();
+        }
+
+        function renderHistory() {
+            if (history.length === 0) {
+                historyList.innerHTML = '<p class="text-slate-400 text-sm italic">기록이 없습니다.</p>';
+                return;
+            }
+            historyList.innerHTML = history.map(item => `
+                <div class="text-sm text-slate-500 dark:text-slate-400 py-1 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                    ${item}
+                </div>
+            `).join('');
+        }
+
+        function showError(msg) {
+            displayElement.innerText = "Error";
+            setTimeout(clearAll, 1500);
+        }
+
+        // 키보드 지원
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') appendNumber(e.key);
+            if (e.key === '.') appendNumber('.');
+            if (e.key === '=' || e.key === 'Enter') calculate();
+            if (e.key === 'Backspace') deleteLast();
+            if (e.key === 'Escape') clearAll();
+            if (['+', '-', '*', '/'].includes(e.key)) setOperator(e.key);
+        });
+
+    </script>
+</body>
+</html>
